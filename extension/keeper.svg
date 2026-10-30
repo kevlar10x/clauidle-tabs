@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <style>
+    .tile { fill: #3f39e8; }
+    .glyph { fill: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #8f93f9; }
+      .glyph { fill: #181a21; }
+    }
+  </style>
+  <rect class="tile" width="16" height="16" rx="3.5"/>
+  <!-- A window: solid title bar, 1.5px frame. -->
+  <path class="glyph" fill-rule="evenodd" d="M3 3.5h10v9H3zM4.5 7v4h7V7z"/>
+</svg>

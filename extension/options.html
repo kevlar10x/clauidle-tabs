@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clauidle Tabs</title>
+  <link rel="stylesheet" href="options.css">
+  <script type="module" src="options.js"></script>
+</head>
+<body>
+  <main>
+    <section class="rows" aria-label="Claude's window">
+      <div class="row">
+        <div class="text">
+          <span class="label">Claude's window</span>
+          <p class="hint" id="window-status" role="status" aria-live="polite">Checking windows…</p>
+        </div>
+        <span class="actions">
+          <button type="button" class="button quiet" id="stop-window" hidden>Stop</button>
+          <button type="button" class="button primary" id="use-window">Use this window</button>
+        </span>
+      </div>
+    </section>
+
+    <section class="rows" aria-labelledby="groups-label">
+      <div class="row">
+        <div class="text">
+          <span class="label" id="groups-label">Claude's tab groups</span>
+          <p class="hint">Switch on the groups that are Claude's. Groups Claude makes from now on are switched on for you.</p>
+        </div>
+      </div>
+      <ul class="groups" id="groups" aria-labelledby="groups-label"></ul>
+    </section>
+
+    <section class="rows" aria-label="Closing idle tabs">
+      <div class="row">
+        <div class="text">
+          <label class="label" for="enabled">Close idle Claude tabs</label>
+          <p class="hint" id="enabled-hint">Claude's tabs close once nobody has touched them for the time below.</p>
+        </div>
+        <input class="switch" type="checkbox" role="switch" id="enabled" aria-describedby="enabled-hint" checked>
+      </div>
+
+      <div class="row" id="minutes-row">
+        <label class="label" for="minutes">Close after</label>
+        <span class="field">
+          <input id="minutes" type="number" inputmode="numeric" min="1" max="1440" step="1" value="30"
+                 aria-describedby="minutes-error" required>
+          <span class="unit">minutes untouched</span>
+        </span>
+        <p class="error" id="minutes-error" hidden>Enter whole minutes from 1 to 1440.</p>
+      </div>
+
+      <p class="row status" id="status" role="status" aria-live="polite">Checking Claude's tabs…</p>
+    </section>
+
+    <dl class="notes">
+      <dt>Claude's tabs</dt>
+      <dd>The Claude (MCP) group, each session's group as Claude makes it, and any group you switch on above. Names are remembered, so they're recognised again after Brave restarts.</dd>
+      <dt>Counts as touched</dt>
+      <dd>The tab loads, goes to a new page, changes its title or plays sound, or you switch to it.</dd>
+      <dt>Never closed</dt>
+      <dd>Pinned tabs, tabs playing sound, and the tab you're looking at. If closing would leave Claude's window or Brave with no tabs, a new tab opens first.</dd>
+    </dl>
+  </main>
+</body>
+</html>

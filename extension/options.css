@@ -1,0 +1,204 @@
+/* Follows Brave's own settings rows: system type, hairline dividers, one accent for state. */
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --text: #1d1f25;
+  --muted: #545a69;
+  --line: #e3e4e8;
+  --accent: #3f39e8;
+  --accent-text: #ffffff;
+  --track: #c4c7cf;
+  --error: #c4231d;
+  --focus: color-mix(in oklab, var(--accent) 45%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #181a21;
+    --text: #eceef2;
+    --muted: #a6abb8;
+    --line: #2f323c;
+    --accent: #8f93f9;
+    --accent-text: #0d0f14;
+    --track: #4a4e5a;
+    --error: #ff8a80;
+  }
+}
+
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  padding: 4px 20px 20px;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 0.8125rem/1.45 system-ui, sans-serif;
+  min-width: 320px;
+}
+::selection { background: color-mix(in oklab, var(--accent) 30%, transparent); }
+main { max-width: 640px; }
+body.popup { width: 400px; min-width: 0; padding-top: 8px; }
+/* The popup keeps to the controls; the notes are on the options page. */
+body.popup .notes { display: none; }
+body.popup .rows:last-of-type { border-bottom: 0; }
+p, dl, dd { margin: 0; }
+
+.rows { border-bottom: 1px solid var(--line); }
+.rows + .rows { margin-top: 8px; }
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 14px 0;
+  min-height: 52px;
+}
+.row + .row { border-top: 1px solid var(--line); }
+.text { flex: 1 1 240px; }
+.label { font-weight: 500; }
+.hint { color: var(--muted); margin-top: 2px; max-width: 60ch; }
+
+#minutes-row .label { flex: 0 0 auto; }
+#minutes-row.off { color: var(--muted); }
+.field { display: inline-flex; align-items: center; gap: 8px; }
+.unit { color: var(--muted); }
+
+input[type="number"] {
+  width: 7ch;
+  padding: 5px 8px;
+  border: 1px solid var(--track);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  caret-color: var(--accent);
+  transition: border-color 150ms ease-out;
+}
+input[type="number"]:hover:not(:disabled) { border-color: var(--muted); }
+input[type="number"]:disabled { opacity: 0.55; }
+input[type="number"][aria-invalid="true"] { border-color: var(--error); }
+
+.error { flex-basis: 100%; color: var(--error); }
+
+.actions { display: inline-flex; gap: 8px; flex: 0 0 auto; }
+.button {
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out, transform 100ms ease-out;
+}
+.button.primary { background: var(--accent); color: var(--accent-text); }
+.button.primary:hover { background: color-mix(in oklab, var(--accent) 88%, var(--text)); }
+.button.quiet { background: transparent; color: var(--text); border-color: var(--track); }
+.button.quiet:hover { border-color: var(--muted); }
+.button:active { transform: scale(0.97); }
+.button:disabled { opacity: 0.55; cursor: default; transform: none; }
+
+/* Switch: a native checkbox, restyled. */
+.switch {
+  appearance: none;
+  flex: 0 0 auto;
+  position: relative;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  border-radius: 10px;
+  background: var(--track);
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+.switch::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.switch:checked { background: var(--accent); }
+.switch:checked::before { transform: translateX(16px); background: var(--accent-text); }
+.switch:hover { filter: brightness(1.06); }
+.switch:active::before { width: 18px; }
+.switch:checked:active::before { transform: translateX(14px); }
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+input[type="number"]:focus-visible { outline-offset: 0; border-color: var(--accent); }
+
+.groups {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 6px;
+  border-top: 1px solid var(--line);
+}
+.group { display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 6px 0; }
+.group + .group { border-top: 1px solid var(--line); }
+.swatch { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--swatch); }
+.group-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group-name.unnamed { color: var(--muted); font-style: italic; }
+.count { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
+.groups .empty { color: var(--muted); padding: 10px 0 8px; }
+body.popup .groups {
+  max-height: 176px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--track) transparent;
+}
+
+/* Brave's tab group colors. */
+[data-color] { --swatch: #5f6368; }
+[data-color="blue"] { --swatch: #1a73e8; }
+[data-color="red"] { --swatch: #d93025; }
+[data-color="yellow"] { --swatch: #f9ab00; }
+[data-color="green"] { --swatch: #1e8e3e; }
+[data-color="pink"] { --swatch: #d01884; }
+[data-color="purple"] { --swatch: #9334e6; }
+[data-color="cyan"] { --swatch: #007b83; }
+[data-color="orange"] { --swatch: #fa903e; }
+@media (prefers-color-scheme: dark) {
+  [data-color] { --swatch: #dadce0; }
+  [data-color="blue"] { --swatch: #8ab4f8; }
+  [data-color="red"] { --swatch: #f28b82; }
+  [data-color="yellow"] { --swatch: #fdd663; }
+  [data-color="green"] { --swatch: #81c995; }
+  [data-color="pink"] { --swatch: #ff8bcb; }
+  [data-color="purple"] { --swatch: #d7aefb; }
+  [data-color="cyan"] { --swatch: #78d9ec; }
+  [data-color="orange"] { --swatch: #fcad70; }
+}
+
+.status { display: block; color: var(--muted); font-variant-numeric: tabular-nums; }
+.status strong { color: var(--text); font-weight: 500; }
+
+.notes {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  padding-top: 14px;
+  color: var(--muted);
+}
+.notes dt { color: var(--text); font-weight: 500; }
+.notes dd { max-width: 62ch; }
+@media (max-width: 420px) {
+  .notes { grid-template-columns: 1fr; gap: 2px; }
+  .notes dd + dt { margin-top: 8px; }
+}
+
+/* The pinned tab that keeps Claude's window open. */
+body.keeper { display: grid; place-items: center; min-height: 100vh; padding: 24px; }
+body.keeper main { max-width: 44ch; text-align: center; }
+.keeper-mark { display: block; margin: 0 auto 16px; }
+body.keeper h1 { margin: 0 0 8px; font-size: 1.25rem; font-weight: 600; }
+body.keeper p + p { margin-top: 8px; }
+body.keeper .hint { margin-inline: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
