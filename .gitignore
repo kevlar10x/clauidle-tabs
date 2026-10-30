@@ -1,0 +1,5 @@
+backups/
+node_modules/
+store/*.zip
+CLAUDE.local.md
+PRODUCT.md
