@@ -1,6 +1,12 @@
 # Changelog
 
-Tested on Brave 1.98.60 (Windows) with the Claude extension 1.0.102 and Claude Code 2.1.309. The automated browser checks also pass on Chrome for Testing 156.
+Tested on Brave 1.98.62 (Windows) with the Claude extension 1.0.104 and Claude Code 2.1.309. The automated browser checks also pass on Chrome for Testing 156.
+
+## 0.6.1 - 2026-11-01
+
+- Fixed: a page asking "Leave site?" stalled the extension. While the prompt waited, new Claude groups stayed in whatever window they opened in.
+- Fixed: the same tab could bring that prompt back later. A tab whose page asks now gets one try, and if you stay on the page it stays open until you close it or restart Brave.
+- Fixed: a session that made a new group under a name it had used before could stay in the wrong window.
 
 ## 0.6.0 - 2026-10-30
 

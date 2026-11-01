@@ -206,3 +206,26 @@ test('forget drops a closed tab', async () => {
   await forget(api, 1);
   assert.deepEqual(state.session.touched, { 2: NOW });
 });
+
+test('a tab held open by a "Leave site?" prompt holds nothing else up and is only asked once', async () => {
+  const { api, state } = fakeBrowser({
+    tabs: [tab(1), tab(2, { lastAccessed: NOW - 5 * MIN }), tab(3, { groupId: -1, active: true })],
+    touched: { 1: NOW - 31 * MIN, 2: NOW - 5 * MIN },
+  });
+  // Brave only answers tabs.remove once the tab has gone, and this one never goes.
+  let asked = 0;
+  api.tabs.remove = () => { asked++; return new Promise(() => {}); };
+  await sweep(api, NOW);
+  assert.equal(asked, 1);
+  assert.deepEqual(Object.keys(state.session.touched), ['2']);
+
+  const later = await sweep(api, NOW + 2 * MIN);
+  assert.deepEqual(later.closed, []);
+  assert.equal(asked, 1);
+});
+
+test('forget drops a tab the sweeper already tried to close', async () => {
+  const { api, state } = fakeBrowser({ session: { tried: { 1: true, 2: true } } });
+  await forget(api, 1);
+  assert.deepEqual(state.session.tried, { 2: true });
+});

@@ -5,6 +5,10 @@ import { claudeGroups, isClaudeGroup } from './groups.js';
 export const DEFAULTS = { enabled: true, minutes: 30, useWindow: false, windowId: null };
 export const ALARM = 'sweep';
 
+// Brave only answers tabs.remove once the tabs have gone, and a "Leave site?" prompt can hold that off
+// until someone answers it, so a sweep waits this long and moves on.
+const CLOSE_WAIT_MS = 1000;
+
 export async function getSettings(api) {
   const saved = await api.storage.local.get(DEFAULTS);
   const minutes = Number(saved.minutes);
@@ -31,11 +35,21 @@ export async function touch(api, tab, now) {
   if (!(await api.alarms.get(ALARM))) await sweep(api, now);
 }
 
+async function readTried(api) {
+  return (await api.storage.session.get('tried')).tried ?? {};
+}
+
 export async function forget(api, tabId) {
   const touched = await readTouched(api);
-  if (!(tabId in touched)) return;
-  delete touched[tabId];
-  await api.storage.session.set({ touched });
+  if (tabId in touched) {
+    delete touched[tabId];
+    await api.storage.session.set({ touched });
+  }
+  const tried = await readTried(api);
+  if (tabId in tried) {
+    delete tried[tabId];
+    await api.storage.session.set({ tried });
+  }
 }
 
 // Works out which watched tabs are due to close, without changing anything.
@@ -45,12 +59,14 @@ export async function review(api, now, minutes) {
   const groups = await claudeGroups(api);
   const tabs = (await Promise.all(groups.map((g) => api.tabs.query({ groupId: g.id })))).flat();
   const stored = await readTouched(api);
+  const tried = await readTried(api);
   const focused = tabs.length ? await api.windows.getLastFocused().catch(() => null) : null;
 
   const touched = {};
   const idle = [];
   for (const tab of tabs) {
-    if (tab.pinned) continue;
+    // A tab still here after a close has a page asking "Leave site?". It gets asked once, then it's yours.
+    if (tab.pinned || tried[tab.id]) continue;
     // A tab seen for the first time counts as touched now, so installing or restarting closes nothing.
     let last = Math.max(stored[tab.id] ?? now, tab.lastAccessed ?? 0);
     // The tab you're looking at, or one playing sound, is in use.
@@ -89,10 +105,10 @@ async function close(api, ids) {
   const keep = emptied.find((w) => useWindow && w.id === windowId)
     ?? (emptied.length === windows.length ? windows[0] : undefined);
   if (keep) await api.tabs.create({ windowId: keep.id });
-  try {
-    await api.tabs.remove(ids);
-  } catch {
-    // One of them closed on its own first, which fails the whole call. Close the rest one by one.
-    await Promise.all(ids.map((id) => api.tabs.remove(id).catch(() => {})));
-  }
+  const tried = await readTried(api);
+  for (const id of ids) tried[id] = true;
+  await api.storage.session.set({ tried });
+  // One of them closing on its own first fails the whole call, so then the rest close one by one.
+  const gone = api.tabs.remove(ids).catch(() => Promise.all(ids.map((id) => api.tabs.remove(id).catch(() => {}))));
+  await Promise.race([gone, new Promise((done) => setTimeout(done, CLOSE_WAIT_MS))]);
 }

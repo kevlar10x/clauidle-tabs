@@ -75,6 +75,18 @@ test("a restored group with a name Claude used is Claude's but isn't moved; a ne
   assert.equal(await claimGroup(api, group, NOW + 50), 'new');
 });
 
+test('a group Claude makes again under a name it used is moved, even when its start went unseen', async () => {
+  const { api } = fakeBrowser({ settings: { titleHashes: [await hashTitle('Sidebar Tidy')] } });
+  assert.equal(await claimGroup(api, { id: 64, title: 'Claude' }, NOW), false);
+  assert.equal(await claimGroup(api, { id: 64, title: '🔵 Sidebar Tidy' }, NOW + 50), 'new');
+});
+
+test('a group you call Claude and rename later is still yours', async () => {
+  const { api } = fakeBrowser();
+  assert.equal(await claimGroup(api, { id: 65, title: 'Claude' }, NOW), false);
+  assert.equal(await claimGroup(api, { id: 65, title: 'Mine' }, NOW + 60_000), false);
+});
+
 test('a group you said is not Claude\'s stays that way', async () => {
   const { api } = fakeBrowser({ session: { notClaudeGroups: [MCP.id, 63] } });
   assert.equal(await claimGroup(api, MCP, NOW), false);

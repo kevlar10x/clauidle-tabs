@@ -228,10 +228,12 @@ try {
     return false;
   };
   const groupWindow = (id) => sw$((id) => chrome.tabGroups.get(id).then((g) => g.windowId, () => null), id);
-  // The way the Claude extension makes a session's group: one new background tab, grouped, then named.
+  // The way the Claude extension makes a session's group: one new background tab, grouped,
+  // called Claude for a moment, then given the session's name.
   const claudeLike = (title, windowId) => sw$(async (title, windowId) => {
     const t = await chrome.tabs.create({ windowId, url: 'data:text/html,<title>s</title>', active: false });
     const groupId = await chrome.tabs.group({ tabIds: t.id, createProperties: { windowId } });
+    await chrome.tabGroups.update(groupId, { title: 'Claude', color: 'orange', collapsed: false });
     await chrome.tabGroups.update(groupId, { title, color: 'cyan' });
     return { groupId, tabId: t.id };
   }, title, windowId);
@@ -353,6 +355,35 @@ try {
   // A spare keeper tab (one more than needed) closes itself as soon as it loads.
   const spare = await sw$((w) => chrome.tabs.create({ windowId: w, url: chrome.runtime.getURL('keeper.html'), active: false }).then((t) => t.id), remembered);
   check('a spare keeper tab is closed', await closedWithin([spare], 5000));
+
+  // 8. A page asking "Leave site?" gets one try. It holds nothing else up, and answering it stays yours.
+  const PROMPT_PAGE = 'data:text/html,<title>Unsaved form</title><script>onbeforeunload=(e)=>{e.preventDefault();e.returnValue=""}</script><body style="height:100vh">';
+  const promptTab = await sw$(async (w, url) => (await chrome.tabs.create({ windowId: w, url, active: false })).id, mainWin, PROMPT_PAGE);
+  let promptTarget;
+  await waitFor(async () => {
+    const { targetInfos } = await cdp.send('Target.getTargets');
+    promptTarget = targetInfos.find((t) => t.type === 'page' && t.title === 'Unsaved form');
+    return promptTarget;
+  }, 10_000);
+  const { sessionId: promptPage } = await cdp.send('Target.attachToTarget', { targetId: promptTarget.targetId, flatten: true });
+  let prompts = 0;
+  cdp.listeners.add((m) => { if (m.sessionId === promptPage && m.method === 'Page.javascriptDialogOpening') prompts++; });
+  await cdp.send('Page.enable', {}, promptPage);
+  // Pages can only ask after someone has clicked in them.
+  for (const type of ['mousePressed', 'mouseReleased']) {
+    await cdp.send('Input.dispatchMouseEvent', { type, x: 50, y: 50, button: 'left', clickCount: 1 }, promptPage);
+  }
+  await sw$((id) => chrome.tabs.group({ tabIds: id }).then((g) => chrome.tabGroups.update(g, { title: 'Claude (MCP)' })), promptTab);
+  await sw$(() => chrome.storage.local.set({ minutes: 0.05 })); // 3 seconds
+  check('an idle tab with a "Leave site?" prompt shows it', await waitFor(() => prompts > 0, 10_000), `${prompts} prompts`);
+  const duringPrompt = await claudeLike('During the prompt', mainWin);
+  check("while that prompt waits, the next Claude group still reaches Claude's window",
+    await waitFor(async () => (await groupWindow(duringPrompt.groupId)) === remembered));
+  await cdp.send('Page.handleJavaScriptDialog', { accept: false }, promptPage); // Stay on the page
+  await sleep(7000);
+  check('choosing to stay leaves the tab open', (await openIds()).includes(promptTab));
+  check('and the prompt never comes back', prompts === 1, `${prompts} prompts`);
+  await sw$(() => chrome.storage.local.set({ minutes: 30 }));
 
   if (SHOTS) {
     // A keeper page opened from here would be a spare and close itself, so use the real one.

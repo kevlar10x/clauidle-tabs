@@ -36,6 +36,7 @@ Go to the window you want Claude to use, click the toolbar button, then Use this
 - A tab it hasn't seen before counts as touched at that moment, so installing it or restarting Brave doesn't close anything straight away.
 - If closing would leave Claude's window, or all of Brave, with no tabs, it opens a new tab first so the window stays.
 - A closed tab comes back with Ctrl+Shift+T like any other.
+- A page that asks "Leave site?", usually over an unsaved form, gets one try. Brave brings the tab to the front with the prompt and the answer is yours. If you stay on the page, the tab stays open until you close it or restart Brave.
 
 ## Which groups count as Claude's
 

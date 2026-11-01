@@ -4,6 +4,7 @@ import { getSettings } from './sweeper.js';
 
 // The Claude extension names a new group within milliseconds; a person takes longer than this.
 const FRESH_MS = 3000;
+const FIRST_TITLE = 'Claude';
 
 async function readPending(api) {
   return (await api.storage.session.get('pending')).pending ?? {};
@@ -47,6 +48,13 @@ export async function claimGroup(api, group, now) {
         await markClaude(api, group);
         return 'new';
       }
+    }
+    // Every new group is called this for a moment before it gets the session's name. Noting that catches
+    // a group whose start went unseen, which a name Claude used before would otherwise pass off as restored.
+    if (group.title === FIRST_TITLE) {
+      pending[group.id] = now;
+      await api.storage.session.set({ pending });
+      return false;
     }
   }
   // A name Claude used before, on a group Brave restored.

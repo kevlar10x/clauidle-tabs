@@ -17,6 +17,7 @@ Kept only until the browser closes:
 
 - The ids of the tab groups you switched on or off, and of groups it has just recognised.
 - The ids of tabs in those groups, with the time each one was last touched, so it knows which tabs are idle.
+- The ids of tabs it has tried to close, so it doesn't try the same tab twice.
 
 ## What it reads
 
