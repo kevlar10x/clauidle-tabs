@@ -8,6 +8,7 @@ export const ALARM = 'sweep';
 // Brave only answers tabs.remove once the tabs have gone, and a "Leave site?" prompt can hold that off
 // until someone answers it, so a sweep waits this long and moves on.
 const CLOSE_WAIT_MS = 1000;
+const wait = (ms) => new Promise((done) => setTimeout(done, ms));
 
 export async function getSettings(api) {
   const saved = await api.storage.local.get(DEFAULTS);
@@ -65,7 +66,7 @@ export async function review(api, now, minutes) {
   const touched = {};
   const idle = [];
   for (const tab of tabs) {
-    // A tab still here after a close has a page asking "Leave site?". It gets asked once, then it's yours.
+    // A tab still here after a close wouldn't unload, so its page may be asking "Leave site?". Once is enough.
     if (tab.pinned || tried[tab.id]) continue;
     // A tab seen for the first time counts as touched now, so installing or restarting closes nothing.
     let last = Math.max(stored[tab.id] ?? now, tab.lastAccessed ?? 0);
@@ -95,6 +96,13 @@ export async function sweep(api, now) {
   return { closed: idle, next };
 }
 
+// An unloaded tab has no page left to ask "Leave site?", so it closes quietly and any unsaved text goes with it.
+// Brave gives it a new id.
+async function unload(api, id) {
+  const tab = await Promise.race([api.tabs.discard(id).catch(() => null), wait(CLOSE_WAIT_MS)]);
+  return tab?.id ?? id;
+}
+
 // Closing every tab in every window would quit Brave, and closing all of Claude's window would lose it,
 // so a new tab keeps the window open in both cases.
 async function close(api, ids) {
@@ -105,10 +113,12 @@ async function close(api, ids) {
   const keep = emptied.find((w) => useWindow && w.id === windowId)
     ?? (emptied.length === windows.length ? windows[0] : undefined);
   if (keep) await api.tabs.create({ windowId: keep.id });
+  const unloaded = await Promise.all(ids.map((id) => unload(api, id)));
   const tried = await readTried(api);
-  for (const id of ids) tried[id] = true;
+  for (const id of unloaded) tried[id] = true;
   await api.storage.session.set({ tried });
   // One of them closing on its own first fails the whole call, so then the rest close one by one.
-  const gone = api.tabs.remove(ids).catch(() => Promise.all(ids.map((id) => api.tabs.remove(id).catch(() => {}))));
-  await Promise.race([gone, new Promise((done) => setTimeout(done, CLOSE_WAIT_MS))]);
+  const gone = api.tabs.remove(unloaded)
+    .catch(() => Promise.all(unloaded.map((id) => api.tabs.remove(id).catch(() => {}))));
+  await Promise.race([gone, wait(CLOSE_WAIT_MS)]);
 }

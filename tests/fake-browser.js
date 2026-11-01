@@ -60,6 +60,12 @@ export function fakeBrowser({
         return created;
       },
       update: async (id, props) => Object.assign(await api.tabs.get(id), props),
+      // Brave gives a tab a new id when it unloads it.
+      discard: async (id) => {
+        const found = await api.tabs.get(id);
+        found.id = nextId++;
+        return found;
+      },
     },
     windows: {
       get: async (id) => {

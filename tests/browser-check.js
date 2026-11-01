@@ -356,34 +356,43 @@ try {
   const spare = await sw$((w) => chrome.tabs.create({ windowId: w, url: chrome.runtime.getURL('keeper.html'), active: false }).then((t) => t.id), remembered);
   check('a spare keeper tab is closed', await closedWithin([spare], 5000));
 
-  // 8. A page asking "Leave site?" gets one try. It holds nothing else up, and answering it stays yours.
-  const PROMPT_PAGE = 'data:text/html,<title>Unsaved form</title><script>onbeforeunload=(e)=>{e.preventDefault();e.returnValue=""}</script><body style="height:100vh">';
-  const promptTab = await sw$(async (w, url) => (await chrome.tabs.create({ windowId: w, url, active: false })).id, mainWin, PROMPT_PAGE);
-  let promptTarget;
-  await waitFor(async () => {
-    const { targetInfos } = await cdp.send('Target.getTargets');
-    promptTarget = targetInfos.find((t) => t.type === 'page' && t.title === 'Unsaved form');
-    return promptTarget;
-  }, 10_000);
-  const { sessionId: promptPage } = await cdp.send('Target.attachToTarget', { targetId: promptTarget.targetId, flatten: true });
+  // 8. A page that would ask "Leave site?" closes without asking, even the tab showing in its window.
   let prompts = 0;
-  cdp.listeners.add((m) => { if (m.sessionId === promptPage && m.method === 'Page.javascriptDialogOpening') prompts++; });
-  await cdp.send('Page.enable', {}, promptPage);
-  // Pages can only ask after someone has clicked in them.
-  for (const type of ['mousePressed', 'mouseReleased']) {
-    await cdp.send('Input.dispatchMouseEvent', { type, x: 50, y: 50, button: 'left', clickCount: 1 }, promptPage);
+  const askingPage = async (windowId, active) => {
+    const title = `Unsaved form ${active}`;
+    const url = `data:text/html,<title>${title}</title><script>onbeforeunload=(e)=>{e.preventDefault();e.returnValue=""}</script><body style="height:100vh">`;
+    const tabId = await sw$(async (w, url, active) => (await chrome.tabs.create({ windowId: w, url, active })).id, windowId, url, active);
+    let target;
+    await waitFor(async () => {
+      const { targetInfos } = await cdp.send('Target.getTargets');
+      target = targetInfos.find((t) => t.type === 'page' && t.title === title);
+      return target;
+    }, 10_000);
+    const { sessionId } = await cdp.send('Target.attachToTarget', { targetId: target.targetId, flatten: true });
+    cdp.listeners.add((m) => { if (m.sessionId === sessionId && m.method === 'Page.javascriptDialogOpening') prompts++; });
+    await cdp.send('Page.enable', {}, sessionId);
+    // Pages can only ask after someone has clicked in them.
+    for (const type of ['mousePressed', 'mouseReleased']) {
+      await cdp.send('Input.dispatchMouseEvent', { type, x: 50, y: 50, button: 'left', clickCount: 1 }, sessionId);
+    }
+    await sw$((id) => chrome.tabs.group({ tabIds: id }).then((g) => chrome.tabGroups.update(g, { title: 'Claude (MCP)' })), tabId);
+  };
+  await askingPage(mainWin, false);
+  await askingPage(remembered, true);
+  // A popup takes the focus as in check 2, or the tab showing in Claude's window counts as the one you're on.
+  const focusTaker = await sw$(async () => (await chrome.windows.create({ type: 'popup', url: 'about:blank', focused: true })).id);
+  for (let i = 0; i < 20; i++) {
+    if (await sw$(async (id) => (await chrome.windows.getLastFocused()).id === id, focusTaker)) break;
+    await sw$((id) => chrome.windows.update(id, { focused: true }), focusTaker);
+    await sleep(100);
   }
-  await sw$((id) => chrome.tabs.group({ tabIds: id }).then((g) => chrome.tabGroups.update(g, { title: 'Claude (MCP)' })), promptTab);
   await sw$(() => chrome.storage.local.set({ minutes: 0.05 })); // 3 seconds
-  check('an idle tab with a "Leave site?" prompt shows it', await waitFor(() => prompts > 0, 10_000), `${prompts} prompts`);
-  const duringPrompt = await claudeLike('During the prompt', mainWin);
-  check("while that prompt waits, the next Claude group still reaches Claude's window",
-    await waitFor(async () => (await groupWindow(duringPrompt.groupId)) === remembered));
-  await cdp.send('Page.handleJavaScriptDialog', { accept: false }, promptPage); // Stay on the page
-  await sleep(7000);
-  check('choosing to stay leaves the tab open', (await openIds()).includes(promptTab));
-  check('and the prompt never comes back', prompts === 1, `${prompts} prompts`);
+  // Unloading gives a tab a new id, so this goes by the groups, which close with their last tab.
+  check('idle tabs on pages that would ask "Leave site?" close, the one showing in its window too',
+    await waitFor(async () => (await sw$(() => chrome.tabGroups.query({ title: 'Claude (MCP)' }).then((g) => g.length))) === 0, 15_000));
+  check('and none of them asked', prompts === 0, `${prompts} prompts`);
   await sw$(() => chrome.storage.local.set({ minutes: 30 }));
+  await sw$((id) => chrome.windows.remove(id), focusTaker);
 
   if (SHOTS) {
     // A keeper page opened from here would be a spare and close itself, so use the real one.

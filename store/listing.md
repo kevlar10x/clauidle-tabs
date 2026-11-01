@@ -20,7 +20,7 @@ Clauidle Tabs tidies up after the Claude browser extension. It's for anyone who 
 What it does:
 
 - Moves new Claude tab groups into one window you pick, so they stop landing next to your videos or work.
-- Closes tabs in those groups once nobody has touched them for a set number of minutes, 30 by default. Pinned tabs, tabs playing sound and the tab you're looking at are left alone.
+- Closes tabs in those groups once nobody has touched them for a set number of minutes, 30 by default. Pinned tabs, tabs playing sound and the tab you're looking at are left alone. Idle tabs close without a "Leave site?" prompt, so unsaved text in them is lost.
 - Keeps a small pinned tab in that window, so the window stays open when every group closes.
 
 You can use either feature on its own. The settings list every tab group with a switch, so you decide what counts. It needs the Claude browser extension to be useful.

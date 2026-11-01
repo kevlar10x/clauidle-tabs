@@ -2,6 +2,10 @@
 
 Tested on Brave 1.98.62 (Windows) with the Claude extension 1.0.104 and Claude Code 2.1.309. The automated browser checks also pass on Chrome for Testing 156.
 
+## 0.6.2 - 2026-11-01
+
+- Idle tabs now close without a "Leave site?" prompt, so a tab no longer jumps to the front to ask. Any unsaved text in that tab is lost.
+
 ## 0.6.1 - 2026-11-01
 
 - Fixed: a page asking "Leave site?" stalled the extension. While the prompt waited, new Claude groups stayed in whatever window they opened in.

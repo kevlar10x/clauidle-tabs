@@ -114,7 +114,11 @@ test('a tab that closed on its own does not stop the others from closing', async
     tabs: [tab(1), tab(2), tab(3, { groupId: -1 })],
     touched: { 1: NOW - 31 * MIN, 2: NOW - 31 * MIN },
   });
-  const remove = api.tabs.remove;
+  const { discard, remove } = api.tabs;
+  api.tabs.discard = async (id) => {
+    if (id === 1) throw new Error('No tab with id: 1.');
+    return discard(id);
+  };
   api.tabs.remove = async (target) => {
     if (Array.isArray(target)) throw new Error('No tab with id: 1.');
     if (target === 1) throw new Error('No tab with id: 1.');
@@ -222,6 +226,32 @@ test('a tab held open by a "Leave site?" prompt holds nothing else up and is onl
   const later = await sweep(api, NOW + 2 * MIN);
   assert.deepEqual(later.closed, []);
   assert.equal(asked, 1);
+});
+
+test('unloads a tab before closing it, so its page gets no "Leave site?" prompt', async () => {
+  const { api, state } = fakeBrowser({
+    tabs: [tab(1), tab(2, { groupId: -1, active: true })],
+    touched: { 1: NOW - 31 * MIN },
+  });
+  const calls = [];
+  const { discard, remove } = api.tabs;
+  api.tabs.discard = (id) => { calls.push('discard'); return discard(id); };
+  api.tabs.remove = (id) => { calls.push('remove'); return remove(id); };
+  await sweep(api, NOW);
+  assert.deepEqual(calls, ['discard', 'remove']);
+  assert.deepEqual(ids(state.tabs), [2]);
+});
+
+test('a tab Brave will not unload still closes, and a stuck unload holds nothing up', async () => {
+  for (const discard of [() => Promise.reject(new Error('Cannot discard')), () => new Promise(() => {})]) {
+    const { api, state } = fakeBrowser({
+      tabs: [tab(1), tab(2, { groupId: -1, active: true })],
+      touched: { 1: NOW - 31 * MIN },
+    });
+    api.tabs.discard = discard;
+    await sweep(api, NOW);
+    assert.deepEqual(ids(state.tabs), [2]);
+  }
 });
 
 test('forget drops a tab the sweeper already tried to close', async () => {
