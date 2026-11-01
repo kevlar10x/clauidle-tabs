@@ -43,11 +43,12 @@ Go to the window you want Claude to use, click the toolbar button, then Use this
 - The "Claude (MCP)" group, by its name.
 - Each Claude Code session's own group. These are named after the session, so the extension recognises them by how Claude makes them: a new group around one brand-new background tab, named within 3 seconds. A group you make yourself, or one you restore with Ctrl+Shift+T, doesn't look like that.
 - A group that gets ⌛ in front of its name. The Claude extension adds it while it runs a tool in that group, so older groups count as soon as Claude works in them again.
+- A group called just "Claude" in Claude's window. When a session's tab leaves its group, Claude puts it in a new group with that name, and it keeps the name until the next tool call. In any other window that name stays yours, because the side panel uses it on your own tabs.
 - Any group you switch on under "Claude's tab groups" in the settings. Use this for groups that were already open before the extension was. A group you switch on also moves to Claude's window, if you picked one.
 
 The names of Claude's groups are remembered as hashes, so when Brave restarts and restores them they're recognised again, and the names themselves are never stored. Names are compared without the ⌛, ✅ and 🔔 the Claude extension adds and without status dots, since those change all the time. Switching a group off forgets its name. The plain name "Claude" is never remembered, because the side panel and sessions without a name all use it.
 
-A group of yours could be taken for Claude's if it has a name Claude used, starts with ⌛, or comes from another extension that makes groups exactly the way Claude does. Switch it off in the settings and it stays off.
+A group of yours could be taken for Claude's if it has a name Claude used, starts with ⌛, is called just "Claude" in Claude's window, or comes from another extension that makes groups exactly the way Claude does. Switch it off in the settings and it stays off. The exception is a group called just "Claude" in Claude's window, which counts again after a Brave restart or an extension update.
 
 ## Things to know
 
@@ -55,7 +56,7 @@ A group of yours could be taken for Claude's if it has a name Claude used, start
 - Keep Claude's window open rather than minimized. I haven't checked whether Claude can take screenshots of tabs in a minimized window.
 - The extension asks Brave to open that new background window without focus. I've only tested in headless Brave, so I haven't seen whether Windows really keeps it behind your other windows.
 - The old "Claude (MCP)" group opens in a new window of its own, which takes focus. That's the Claude extension's doing. The group then moves to Claude's window and the empty window closes.
-- It depends on how the Claude extension makes its groups (tested with version 1.0.102 and Claude Code 2.1.309). If that changes, groups may stop being recognised until this is updated.
+- It depends on how the Claude extension makes its groups (tested with version 1.0.104 and Claude Code 2.1.309). If that changes, groups may stop being recognised until this is updated.
 
 ## Permissions
 

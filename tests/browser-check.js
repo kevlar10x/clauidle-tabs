@@ -285,6 +285,29 @@ try {
   check("Claude's window stays open", await sw$((id) => chrome.windows.get(id).then(() => true, () => false), remembered));
   await sw$(() => chrome.storage.local.set({ minutes: 30 }));
 
+  // When a session's tab leaves its group, Claude puts it in a new group called just Claude, which keeps that
+  // name until the next tool call. The side panel uses the name too, so it only counts in Claude's window.
+  const openTab = (windowId) => sw$(async (w) => (await chrome.tabs.create({ windowId: w, url: 'data:text/html,<title>r</title>', active: false })).id, windowId);
+  const inClaudesWindow = await openTab(remembered);
+  const inMainWindow = await openTab(mainWin);
+  await sleep(3500); // older tabs, so neither is spotted as a new session
+  const regroup = (tabId, windowId) => sw$(async (tabId, windowId) => {
+    const groupId = await chrome.tabs.group({ tabIds: tabId, createProperties: { windowId } });
+    await chrome.tabGroups.update(groupId, { title: 'Claude', color: 'orange', collapsed: false });
+    return groupId;
+  }, tabId, windowId);
+  const regrouped = await regroup(inClaudesWindow, remembered);
+  const sidePanel = await regroup(inMainWindow, mainWin);
+  await sw$(() => chrome.storage.session.remove('claudeGroups')); // what a reload or a restart does
+  await sw$(() => chrome.storage.local.set({ minutes: 0.05 }));
+  // Unloading gives a tab a new id, so this goes by the group, which closes with its last tab.
+  check("idle tabs in a group called just Claude close in Claude's window",
+    await waitFor(async () => (await groupWindow(regrouped)) === null, 10_000));
+  check("and in another window they stay, since it could be the side panel on your own tab",
+    (await groupWindow(sidePanel)) === mainWin);
+  await sw$(() => chrome.storage.local.set({ minutes: 30 }));
+  await sw$((id) => chrome.tabs.remove(id), inMainWindow);
+
   // 6. Groups made before the extension was on: you switch them on, and their names are remembered.
   const groupOf = (tabId) => sw$((id) => chrome.tabs.get(id).then((t) => t.groupId), tabId);
   const switchState = (gid) => cdp.evaluate(page, (id) => document.getElementById(`group-${id}`)?.checked ?? null, gid);

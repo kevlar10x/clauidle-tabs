@@ -87,6 +87,26 @@ test('a group you call Claude and rename later is still yours', async () => {
   assert.equal(await claimGroup(api, { id: 65, title: 'Mine' }, NOW + 60_000), false);
 });
 
+test("a group that turns up in Claude's window called just Claude is Claude's, and stays where it is", async () => {
+  const { api, state } = fakeBrowser({ windows: [MAIN, CLAUDE], settings: { useWindow: true, windowId: 2 } });
+  const group = { id: 66, title: 'Claude', windowId: 2 };
+  assert.equal(await claimGroup(api, group, NOW), 'known');
+  assert.deepEqual(state.session.claudeGroups, [66]);
+  assert.deepEqual(state.moves, []);
+});
+
+test("in another window that name still waits for the session's name, and then the group moves", async () => {
+  const { api, state } = fakeBrowser({
+    windows: [MAIN, CLAUDE],
+    groups: [MCP, OTHER, { id: 67, title: 'Claude', windowId: 1 }],
+    settings: { useWindow: true, windowId: 2, titleHashes: [await hashTitle('Sidebar Tidy')] },
+  });
+  assert.equal(await claimGroup(api, { id: 67, title: 'Claude', windowId: 1 }, NOW), false);
+  assert.equal(await claimGroup(api, { id: 67, title: 'Sidebar Tidy', windowId: 1 }, NOW + 50), 'new');
+  await routeGroup(api, 67);
+  assert.deepEqual(state.moves, [[67, 2]]);
+});
+
 test('a group you said is not Claude\'s stays that way', async () => {
   const { api } = fakeBrowser({ session: { notClaudeGroups: [MCP.id, 63] } });
   assert.equal(await claimGroup(api, MCP, NOW), false);

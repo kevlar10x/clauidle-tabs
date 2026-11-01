@@ -9,8 +9,11 @@ const MAX_TITLES = 100;
 const MARKS = /^[\s⌛✅\u{1F514}\u{1F534}\u{1F7E1}\u{1F535}\u{1F7E2}⚪️]+/u;
 export const baseTitle = (title) => (title ?? '').replace(MARKS, '').trim();
 
-// "Claude" is the name the side panel and unnamed sessions use, so on its own it says nothing.
-const GENERIC = new Set(['', 'Claude', GROUP_TITLE]);
+// "Claude" is the name the side panel and unnamed sessions use, so on its own it says nothing. The window picked
+// for Claude is the exception: when a session's tab leaves its group, Claude puts it in a new group with that
+// name, and an idle session never renames it.
+const PLAIN_TITLE = 'Claude';
+const GENERIC = new Set(['', PLAIN_TITLE, GROUP_TITLE]);
 
 // Session names can say what someone is working on, so only a hash of each is stored. That's enough to
 // recognise a name again, and the name itself never sits in storage.
@@ -23,19 +26,21 @@ export async function hashTitle(base) {
 export async function readIdentity(api) {
   const [session, local] = await Promise.all([
     api.storage.session.get(['claudeGroups', 'notClaudeGroups']),
-    api.storage.local.get({ titleHashes: [] }),
+    api.storage.local.get({ titleHashes: [], useWindow: false, windowId: null }),
   ]);
   return {
     ids: new Set(session.claudeGroups ?? []),
     notIds: new Set(session.notClaudeGroups ?? []),
     titles: new Set(local.titleHashes),
+    claudeWindow: local.useWindow === true ? local.windowId : null,
   };
 }
 
-export async function isClaude(group, { ids, notIds, titles }) {
+export async function isClaude(group, { ids, notIds, titles, claudeWindow }) {
   if (notIds.has(group.id)) return false;
   if (group.title === GROUP_TITLE || ids.has(group.id)) return true;
   const base = baseTitle(group.title);
+  if (base === PLAIN_TITLE) return group.windowId === claudeWindow;
   return !GENERIC.has(base) && titles.has(await hashTitle(base));
 }
 

@@ -254,6 +254,51 @@ test('a tab Brave will not unload still closes, and a stuck unload holds nothing
   }
 });
 
+test("a group called just Claude counts in Claude's window: that's a session's group after Claude regroups its tab", async () => {
+  for (const title of ['Claude', '✅Claude']) {
+    const { api, state } = fakeBrowser({
+      windows: [{ id: 1, focused: true }, { id: 2, focused: false }],
+      groups: [MCP, OTHER, { id: 30, title, windowId: 2 }],
+      tabs: [tab(1, { groupId: 30, windowId: 2 }), tab(2, { groupId: -1, active: true })],
+      settings: { useWindow: true, windowId: 2 },
+      touched: { 1: NOW - 31 * MIN },
+    });
+    const result = await sweep(api, NOW);
+    assert.equal(result.closed.length, 1, title);
+  }
+});
+
+test('a group called just Claude stays yours anywhere else: the side panel uses that name on your own tabs', async () => {
+  const cases = {
+    'another window': { useWindow: true, windowId: 2 },
+    'no window picked': { useWindow: false, windowId: 1 },
+  };
+  for (const [label, settings] of Object.entries(cases)) {
+    const { api, state } = fakeBrowser({
+      windows: [{ id: 1, focused: true }, { id: 2, focused: false }],
+      groups: [MCP, OTHER, { id: 30, title: 'Claude', windowId: 1 }],
+      tabs: [tab(1, { groupId: 30 }), tab(2, { groupId: -1, active: true })],
+      settings,
+      touched: { 1: NOW - 31 * MIN },
+    });
+    await sweep(api, NOW);
+    assert.deepEqual(ids(state.tabs).slice(0, 2), [1, 2], label);
+  }
+});
+
+test("a group called just Claude that you switched off stays off, even in Claude's window", async () => {
+  const { api, state } = fakeBrowser({
+    windows: [{ id: 1, focused: true }, { id: 2, focused: false }],
+    groups: [MCP, OTHER, { id: 30, title: 'Claude', windowId: 2 }],
+    tabs: [tab(1, { groupId: 30, windowId: 2 }), tab(2, { groupId: -1, active: true })],
+    settings: { useWindow: true, windowId: 2 },
+    session: { notClaudeGroups: [30] },
+    touched: { 1: NOW - 31 * MIN },
+  });
+  await sweep(api, NOW);
+  assert.deepEqual(ids(state.tabs).slice(0, 2), [1, 2]);
+});
+
 test('forget drops a tab the sweeper already tried to close', async () => {
   const { api, state } = fakeBrowser({ session: { tried: { 1: true, 2: true } } });
   await forget(api, 1);

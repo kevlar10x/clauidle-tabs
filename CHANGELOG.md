@@ -2,6 +2,10 @@
 
 Tested on Brave 1.98.62 (Windows) with the Claude extension 1.0.104 and Claude Code 2.1.309. The automated browser checks also pass on Chrome for Testing 156.
 
+## 0.6.3 - 2026-11-02
+
+- Fixed: a Claude tab could stay open for good if Claude had put it in a new group called just "Claude". That group now counts when it's in Claude's window. The same name in any other window stays yours, because the side panel uses it on your own tabs.
+
 ## 0.6.2 - 2026-11-01
 
 - Idle tabs now close without a "Leave site?" prompt, so a tab no longer jumps to the front to ask. Any unsaved text in that tab is lost.

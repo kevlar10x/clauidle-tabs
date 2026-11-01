@@ -54,10 +54,9 @@ export async function claimGroup(api, group, now) {
     if (group.title === FIRST_TITLE) {
       pending[group.id] = now;
       await api.storage.session.set({ pending });
-      return false;
     }
   }
-  // A name Claude used before, on a group Brave restored.
+  // A name Claude used before on a group Brave restored, or a group already in Claude's window.
   if (await isClaude(group, identity)) {
     await markClaude(api, group);
     return 'known';
