@@ -71,7 +71,6 @@ A group of yours could be taken for Claude's if it has a name Claude used, start
 - A "Leave site?" prompt on the tab already showing in Claude's window looks exactly like you clicking that window, so it still takes you there. Any prompt stays up until someone answers it.
 - Claude's permission popup still comes to the front, because you have to answer it.
 - Clicking Claude's window within a second of Claude opening a tab there can send you back once. So can picking one of Claude's tabs in tab search while Claude runs a tool in its group.
-- I tested your own clicks by giving the window the focus and then clicking over the DevTools protocol. I haven't tested them with a real mouse.
 
 ## Permissions
 

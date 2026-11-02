@@ -1,6 +1,6 @@
 # Clauidle Tabs privacy policy
 
-Last updated: 2 November 2026
+Last updated: 3 November 2026
 
 Clauidle Tabs is a browser extension by kevlar10x. It has no server, no analytics and no accounts, and it makes no network requests. Nothing it stores leaves your browser, and nobody else receives it, including me.
 
