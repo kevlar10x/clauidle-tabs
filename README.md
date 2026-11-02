@@ -34,8 +34,8 @@ Go to the window you want Claude to use, click the toolbar button, then Use this
 
 When Claude clicks a link that opens a tab or popup, Brave treats it as your click and brings that window to the front. A "Leave site?" prompt does the same. An extension can't block that, so this sends you straight back. It's on by default, and the switch is in the settings.
 
-- After a new tab or popup you're back in under a tenth of a second. Anything you type in that moment can land in Claude's page.
-- A "Leave site?" prompt on a hidden Claude tab holds the focus until Claude answers it, about half a second in my tests. This only works while Claude is running a tool in that group, which shows as ⌛ in the group's name.
+- After a new tab or popup you're back in about a tenth of a second (58 to 101 ms in Brave). Anything you type in that moment can land in Claude's page.
+- A "Leave site?" prompt on a hidden Claude tab holds the focus until Claude answers it, which took 86 ms in Brave. This only works while Claude is running a tool in that group, which shows as ⌛ in the group's name.
 - If a hidden Claude tab opens a tab, the tab you had showing in that window stays showing.
 - A link you click yourself opens normally. Your click brings the window forward before the tab opens and Claude's click does it after, which is how the two are told apart.
 - In another app, Windows kept that app in front in my tests, with this setting on or off. If Brave ever does take the front there, its window drops the focus so it falls to whatever was behind. I haven't been able to test that case.
