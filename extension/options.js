@@ -8,6 +8,7 @@ if (new URLSearchParams(location.search).has('popup')) document.body.classList.a
 const windowStatus = document.getElementById('window-status');
 const useWindow = document.getElementById('use-window');
 const stopWindow = document.getElementById('stop-window');
+const stayPut = document.getElementById('stay-put');
 const enabled = document.getElementById('enabled');
 const minutes = document.getElementById('minutes');
 const minutesRow = document.getElementById('minutes-row');
@@ -138,6 +139,7 @@ useWindow.addEventListener('click', async () => {
   await chrome.storage.local.set({ useWindow: true, windowId: id });
 });
 stopWindow.addEventListener('click', () => chrome.storage.local.set({ useWindow: false }));
+stayPut.addEventListener('change', () => chrome.storage.local.set({ stayPut: stayPut.checked }));
 
 enabled.addEventListener('change', async () => {
   showOff(!enabled.checked);
@@ -161,6 +163,7 @@ chrome.tabGroups.onRemoved.addListener(refreshSoon);
 chrome.windows.onRemoved.addListener(refreshSoon);
 
 const saved = await getSettings(chrome);
+stayPut.checked = saved.stayPut;
 enabled.checked = saved.enabled;
 minutes.value = saved.minutes ?? DEFAULTS.minutes;
 showOff(!saved.enabled);

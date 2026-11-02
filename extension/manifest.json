@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Clauidle Tabs",
-  "version": "0.6.3",
+  "version": "0.7.0",
   "description": "Unofficial helper by kevlar10x. Keeps Claude's browser tabs in one window and closes the ones nobody has touched for a while.",
   "author": "kevlar10x",
   "homepage_url": "https://github.com/kevlar10x/clauidle-tabs",

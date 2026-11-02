@@ -2,7 +2,7 @@
 // Every browser call goes through `api`: chrome in the extension, a fake in the tests.
 import { claudeGroups, isClaudeGroup } from './groups.js';
 
-export const DEFAULTS = { enabled: true, minutes: 30, useWindow: false, windowId: null };
+export const DEFAULTS = { enabled: true, minutes: 30, useWindow: false, windowId: null, stayPut: true };
 export const ALARM = 'sweep';
 
 // Brave only answers tabs.remove once the tabs have gone, and a "Leave site?" prompt can hold that off
@@ -18,6 +18,7 @@ export async function getSettings(api) {
     minutes: minutes > 0 ? minutes : DEFAULTS.minutes,
     useWindow: saved.useWindow === true,
     windowId: Number.isInteger(saved.windowId) ? saved.windowId : null,
+    stayPut: saved.stayPut !== false,
   };
 }
 

@@ -2,6 +2,11 @@
 
 Tested on Brave 1.98.62 (Windows) with the Claude extension 1.0.104 and Claude Code 2.1.309. The automated browser checks also pass on Chrome for Testing 156.
 
+## 0.7.0 - 2026-11-02
+
+- New setting, on by default: Stay where you are. When Claude opens a tab or popup, you're sent straight back to where you were, in under a tenth of a second. A link you click yourself still opens normally.
+- A "Leave site?" prompt on a hidden Claude tab no longer leaves you there either. You're back once Claude answers it, about half a second later.
+
 ## 0.6.3 - 2026-11-02
 
 - Fixed: a Claude tab could stay open for good if Claude had put it in a new group called just "Claude". That group now counts when it's in Claude's window. The same name in any other window stays yours, because the side panel uses it on your own tabs.

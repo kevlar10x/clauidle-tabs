@@ -1,8 +1,9 @@
 # Clauidle Tabs
 
-A small Brave extension (it works in Chrome too) for the tabs Claude Code opens through the Claude browser extension. It does two things, and you can use either one on its own:
+A small Brave extension (it works in Chrome too) for the tabs Claude Code opens through the Claude browser extension. It does three things, and you can use each one on its own:
 
 - Keeps Claude's tab groups in one window you pick, so they stop landing in the window you're watching videos in.
+- Sends you straight back when Claude's clicks pull you over to its tabs.
 - Closes Claude's tabs once nobody has touched them for a set number of minutes (30 by default).
 
 It goes only by what happens in the tabs and has no connection to Claude Code. It's an unofficial project by kevlar10x, not made by or affiliated with Anthropic. The original lives at https://github.com/kevlar10x/clauidle-tabs.
@@ -28,6 +29,16 @@ Go to the window you want Claude to use, click the toolbar button, then Use this
 - After Brave restarts and restores your windows, that pinned tab tells the extension which window is Claude's, so everything carries on there. If Brave doesn't restore your last session, the next Claude group opens a new background window, which becomes Claude's window.
 - If you close Claude's window, the next Claude group also opens a new background window. Click Use this window again if you'd rather use another one.
 - Stop turns it off and closes the pinned tab. Picking another window moves the pinned tab there.
+
+## Staying where you are
+
+When Claude clicks a link that opens a tab or popup, Brave treats it as your click and brings that window to the front. A "Leave site?" prompt does the same. An extension can't block that, so this sends you straight back. It's on by default, and the switch is in the settings.
+
+- After a new tab or popup you're back in under a tenth of a second. Anything you type in that moment can land in Claude's page.
+- A "Leave site?" prompt on a hidden Claude tab holds the focus until Claude answers it, about half a second in my tests. This only works while Claude is running a tool in that group, which shows as ⌛ in the group's name.
+- If a hidden Claude tab opens a tab, the tab you had showing in that window stays showing.
+- A link you click yourself opens normally. Your click brings the window forward before the tab opens and Claude's click does it after, which is how the two are told apart.
+- In another app, Windows kept that app in front in my tests, with this setting on or off. If Brave ever does take the front there, its window drops the focus so it falls to whatever was behind. I haven't been able to test that case.
 
 ## Closing idle tabs
 
@@ -57,12 +68,16 @@ A group of yours could be taken for Claude's if it has a name Claude used, start
 - The extension asks Brave to open that new background window without focus. I've only tested in headless Brave, so I haven't seen whether Windows really keeps it behind your other windows.
 - The old "Claude (MCP)" group opens in a new window of its own, which takes focus. That's the Claude extension's doing. The group then moves to Claude's window and the empty window closes.
 - It depends on how the Claude extension makes its groups (tested with version 1.0.104 and Claude Code 2.1.309). If that changes, groups may stop being recognised until this is updated.
+- A "Leave site?" prompt on the tab already showing in Claude's window looks exactly like you clicking that window, so it still takes you there. Any prompt stays up until someone answers it.
+- Claude's permission popup still comes to the front, because you have to answer it.
+- Clicking Claude's window within a second of Claude opening a tab there can send you back once. So can picking one of Claude's tabs in tab search while Claude runs a tool in its group.
+- I tested your own clicks by giving the window the focus and then clicking over the DevTools protocol. I haven't tested them with a real mouse.
 
 ## Permissions
 
 - `tabGroups`, to find Claude's groups and move them.
 - `alarms`, for one timer set to when the next tab is due.
-- `storage`, for your settings, Claude's window and its pinned tab, hashes of the names of Claude's groups, and when each tab was last touched.
+- `storage`, for your settings, Claude's window and its pinned tab, hashes of the names of Claude's groups, when each tab was last touched, which window has the focus, and which tab is showing in each window.
 
 It can't read page contents, addresses or titles, and it makes no network requests. See [PRIVACY.md](PRIVACY.md).
 
@@ -84,7 +99,11 @@ node tests/restart-check.js
 node tests/update-check.js
 ```
 
-The first runs the unit tests (Node 22 or newer). The second loads the extension into a headless Brave with a throwaway profile, checks the closing and moving rules and the settings page for real, then deletes the profile. Give it a folder name to also save screenshots of the settings page and the pinned tab. The third restarts Brave on one throwaway profile to check that Claude's window is found again. The fourth checks that names stored as plain text by 0.5 become hashes. All three browser checks use another browser if you set the `BRAVE` environment variable to its path.
+```bash
+node tests/focus-check.js "path to Chrome for Testing"
+```
+
+The first runs the unit tests (Node 22 or newer). The second loads the extension into a headless Brave with a throwaway profile, checks the closing and moving rules and the settings page for real, then deletes the profile. Give it a folder name to also save screenshots of the settings page and the pinned tab. The third restarts Brave on one throwaway profile to check that Claude's window is found again. The fourth checks that names stored as plain text by 0.5 become hashes. All three of those use another browser if you set the `BRAVE` environment variable to its path. The last one needs real windows, because focus means nothing in a headless browser, so it takes the focus for about 20 seconds. Windows only: set `QUIET_RUN` to a launcher that keeps the windows out of your way, which also turns on its other-app check.
 
 `store/` holds what the Chrome Web Store needs: the icon and screenshot scripts, the listing text and the package builder.
 

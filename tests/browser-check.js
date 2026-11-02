@@ -221,8 +221,16 @@ try {
   check('the switch turns it off', off.disabled && off.status === "Off. Claude's tabs stay open.", off.status);
   await shoot('off');
 
+  const stayPut = await cdp.evaluate(page, async () => {
+    const before = document.getElementById('stay-put').checked;
+    document.getElementById('stay-put').click();
+    await new Promise((r) => setTimeout(r, 100));
+    return { before, saved: (await chrome.storage.local.get('stayPut')).stayPut };
+  });
+  check('"Stay where you are" starts on, and its switch saves', stayPut.before && stayPut.saved === false, JSON.stringify(stayPut));
+
   // 5. Claude's window: Claude's groups move there, yours stay where they are.
-  await sw$(() => chrome.storage.local.set({ enabled: true, minutes: 30 }));
+  await sw$(() => chrome.storage.local.set({ enabled: true, minutes: 30, stayPut: true }));
   const waitFor = async (fn, ms = 5000) => {
     for (const end = Date.now() + ms; Date.now() < end;) { if (await fn()) return true; await sleep(150); }
     return false;

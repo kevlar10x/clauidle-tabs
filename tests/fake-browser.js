@@ -12,7 +12,7 @@ export function fakeBrowser({
   const state = {
     groups: groups.map((g) => ({ ...g })), tabs, windows, local: { ...settings },
     session: structuredClone(touched ? { ...session, touched } : session),
-    alarm: null, created: [], createdWindows: [], moves: [],
+    alarm: null, created: [], createdWindows: [], moves: [], windowUpdates: [],
   };
   let nextId = 1000;
   const api = {
@@ -29,10 +29,11 @@ export function fakeBrowser({
     },
     tabGroups: {
       query: async () => state.groups,
-      get: async (id) => {
+      get: (id) => {
+        if (id < 0) throw new TypeError(`Error at parameter 'groupId': Value must be at least 0.`); // on the spot, so .catch() misses it
         const group = state.groups.find((g) => g.id === id);
-        if (!group) throw new Error(`No group with id: ${id}.`);
-        return group;
+        if (!group) return Promise.reject(new Error(`No group with id: ${id}.`));
+        return Promise.resolve(group);
       },
       move: async (id, { windowId }) => {
         const group = await api.tabGroups.get(id);
@@ -59,7 +60,7 @@ export function fakeBrowser({
         state.tabs.push(created);
         return created;
       },
-      update: async (id, props) => Object.assign(await api.tabs.get(id), props),
+      update: async (id, props) => Object.assign(await api.tabs.get(id), props, { lastUpdate: props }),
       // Brave gives a tab a new id when it unloads it.
       discard: async (id) => {
         const found = await api.tabs.get(id);
@@ -80,6 +81,11 @@ export function fakeBrowser({
         const first = { id: nextId++, windowId: win.id, groupId: -1, active: true, url };
         state.tabs.push(first);
         return { ...win, tabs: [first] };
+      },
+      update: async (id, props) => {
+        const win = await api.windows.get(id);
+        state.windowUpdates.push([id, props]);
+        return win;
       },
       getLastFocused: async () => state.windows.find((w) => w.focused) ?? state.windows[0],
       getAll: async () => state.windows.map((w) => ({ ...w, tabs: state.tabs.filter((t) => t.windowId === w.id) })),

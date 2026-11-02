@@ -1,22 +1,38 @@
 // clauidle-tabs by kevlar10x, github.com/kevlar10x/clauidle-tabs. Wires browser events to the sweeper and the router; the rules live there.
 import { ALARM, forget, sweep, touch } from './sweeper.js';
+import { noteFocus, noteNewTab, noteShowing, seedFocus } from './focus.js';
 import { hashOldTitles, isClaudeGroup } from './groups.js';
 import {
   adoptKeeper, claimGroup, ensureKeeper, noteNewGroup, releaseOldKeeper, routeAll, routeGroup,
 } from './router.js';
 
-// One job at a time, so a sweep and a touch never write the stored times over each other.
-let queue = Promise.resolve();
-const run = (job) => {
-  queue = queue.then(job).catch((err) => console.warn('clauidle-tabs:', err));
+const inTurn = () => {
+  let queue = Promise.resolve();
+  return (job) => {
+    queue = queue.then(job).catch((err) => console.warn('clauidle-tabs:', err));
+  };
 };
+// One job at a time, so a sweep and a touch never write the stored times over each other.
+const run = inTurn();
+// Sending you back goes by the order things happened in, and a sweep shouldn't hold it up.
+const runFocus = inTurn();
 
 // Loading, navigating, a title change or sound all count as the tab being used.
 chrome.tabs.onUpdated.addListener((_tabId, _change, tab) => {
   if (tab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) run(() => touch(chrome, tab, Date.now()));
 });
-chrome.tabs.onActivated.addListener(({ tabId }) => {
-  run(async () => touch(chrome, await chrome.tabs.get(tabId).catch(() => null), Date.now()));
+chrome.tabs.onActivated.addListener((active) => {
+  const now = Date.now();
+  run(async () => touch(chrome, await chrome.tabs.get(active.tabId).catch(() => null), now));
+  runFocus(() => noteShowing(chrome, active, now));
+});
+chrome.tabs.onCreated.addListener((tab) => {
+  const now = Date.now();
+  runFocus(() => noteNewTab(chrome, tab, now));
+});
+chrome.windows.onFocusChanged.addListener((windowId) => {
+  const now = Date.now();
+  runFocus(() => noteFocus(chrome, windowId, now));
 });
 chrome.tabs.onRemoved.addListener((tabId, { isWindowClosing }) => {
   run(() => forget(chrome, tabId));
@@ -58,8 +74,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
   run(() => sweep(chrome, Date.now()));
 });
-chrome.runtime.onStartup.addListener(() => run(() => sweep(chrome, Date.now())));
+chrome.runtime.onStartup.addListener(() => {
+  runFocus(() => seedFocus(chrome));
+  run(() => sweep(chrome, Date.now()));
+});
 chrome.runtime.onInstalled.addListener(({ reason }) => {
+  runFocus(() => seedFocus(chrome));
   run(() => hashOldTitles(chrome));
   run(() => sweep(chrome, Date.now()));
   if (reason === 'update') run(() => releaseOldKeeper(chrome));
